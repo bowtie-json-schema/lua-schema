@@ -1,4 +1,4 @@
-FROM alpine:3.24.1 AS builder
+FROM alpine:3.24.2 AS builder
 
 RUN apk add --no-cache \
     lua5.4 \
@@ -6,7 +6,7 @@ RUN apk add --no-cache \
     luarocks5.4 \
  && luarocks-5.4 install lua-schema
 
-FROM alpine:3.24.1
+FROM alpine:3.24.2
 WORKDIR /harness
 
 RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
