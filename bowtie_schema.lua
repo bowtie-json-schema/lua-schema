@@ -2,6 +2,24 @@ local schema = require 'schema'
 local json = require 'dkjson'
 local null = io.stderr
 schema.json.null = null
+schema.json.is_array = function (data)
+  if type(data) == 'table' then
+    local mt = getmetatable(data)
+      if not mt or mt.__jsontype == 'array' then
+        return true
+      end
+  end
+  return false
+end
+schema.json.is_object = function (data)
+  if type(data) == 'table' then
+    local mt = getmetatable(data)
+    if not mt or mt.__jsontype == 'object' then
+        return true
+      end
+  end
+  return false
+end
 
 local modnames = {
   ['https://json-schema.org/draft/2020-12/schema'] = 'schema.draft2020-12',
@@ -17,36 +35,6 @@ local skipped1 = {
 }
 
 local skipped2 = setmetatable({
-  ['contains keyword validation'] = { -- contains
-    ['not array is valid'] = 'array and object are both represented by a Lua table',
-  },
-  ['items and subitems'] = { -- items
-    ['wrong item'] = 'array and object are both represented by a Lua table',
-  },
-  ['maxProperties validation'] = { -- maxProperties
-    ['ignores arrays'] = 'array and object are both represented by a Lua table',
-  },
-  ['minProperties validation'] = { -- minProperties
-    ['ignores arrays'] = 'array and object are both represented by a Lua table',
-  },
-  ['by small number'] = { -- multipleOf
-    ['0.0075 is multiple of 0.0001'] = 'Lua modulo',
-  },
-  ['small multiple of large integer'] = { -- multipleOf
-    ['any integer is a multiple of 1e-8'] = 'Lua modulo',
-  },
-  ['required validation'] = { -- required
-    ['ignores arrays'] = 'array and object are both represented by a Lua table',
-  },
-  ['required properties whose names are Javascript object property names'] = { -- required
-    ['ignores arrays'] = 'array and object are both represented by a Lua table',
-  },
-  ['object type matches objects'] = { -- type
-    ['an array is not an object'] = 'array and object are both represented by a Lua table',
-  },
-  ['array type matches arrays'] = { -- type
-    ['an object is not an array'] = 'array and object are both represented by a Lua table',
-  },
 }, {
   __index = function()
     return {}
