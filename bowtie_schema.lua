@@ -1,5 +1,6 @@
 local schema = require 'schema'
 local json = require 'dkjson'
+local utils = require 'schema.utils'
 
 local modnames = {
   ['https://json-schema.org/draft/2020-12/schema'] = 'schema.draft2020-12',
@@ -75,6 +76,67 @@ local function exec(cmd)
   return line
 end
 
+local function resource_pointers(document)
+  local pointers = {}
+  local walk
+  walk = function(node, pointer, base)
+    if type(node) ~= 'table' then
+      return
+    end
+    local current = base
+    if type(node['$id']) == 'string' then
+      current = base ~= '' and utils.resolve_uri(base, node['$id']) or node['$id']
+      pointers[current] = pointer
+    end
+    for key, value in pairs(node) do
+      walk(value, pointer .. '/' .. utils.escape_jsonptr(key), current)
+    end
+  end
+  walk(document, '', '')
+  return pointers
+end
+
+local function keyword_location(absolute, evaluated, pointers)
+  local fragment
+  if absolute and #absolute > 0 then
+    local hash = absolute:find('#', 1, true)
+    if hash then
+      local base = absolute:sub(1, hash - 1)
+      fragment = absolute:sub(hash + 1)
+      if #base > 0 and pointers[base] then
+        fragment = pointers[base] .. fragment
+      end
+    else
+      fragment = absolute
+    end
+  else
+    fragment = evaluated or ''
+  end
+  return '#' .. fragment
+end
+
+local function keyword_name(location)
+  return location:match '[^/]*$'
+end
+
+local function bowtie_annotations(result, pointers)
+  local annotations = {}
+  if not result.valid then
+    return annotations
+  end
+  for _, annotation in ipairs(result.annotations or {}) do
+    local location = keyword_location(
+      annotation.absoluteKeywordLocation, annotation.keywordLocation, pointers)
+    annotations[#annotations + 1] = {
+      keyword = keyword_name(location),
+      instanceLocation = annotation.instanceLocation or '',
+      keywordLocation = location,
+      annotation = annotation.annotation,
+    }
+  end
+  return annotations
+end
+
 local STARTED = false
 
 local cmds = {
@@ -120,6 +182,8 @@ local cmds = {
   run = function(request)
     assert(STARTED, 'Not started!')
     local case = request.case
+    local want_annotations = request.output == 'annotations'
+    schema.output_format = want_annotations and 'basic' or 'flag'
     local reason = skipped1[case.description]
     local results = {}
     if not reason then
@@ -138,6 +202,7 @@ local cmds = {
           },
         }
       end
+      local pointers = want_annotations and resource_pointers(case.schema)
       for i = 1, #case.tests do
         local test = case.tests[i]
         reason = skipped2[case.description][test.description]
@@ -147,7 +212,17 @@ local cmds = {
             message = reason,
           }
         else
-          results[i] = validator:validate(test.instance)
+          local result = validator:validate(test.instance)
+          if want_annotations then
+            results[i] = {
+              valid = result.valid,
+              annotations = bowtie_annotations(result, pointers),
+            }
+          else
+            results[i] = {
+              valid = result.valid,
+            }
+          end
         end
       end
     else
