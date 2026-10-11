@@ -15,6 +15,9 @@ local skipped1 = {
   ['contains with null instance elements'] = 'in a table, a `nil` value means that the key does not exist', -- contains
   ['heterogeneous enum-with-null validation'] = 'in a table, a `nil` value means that the key does not exist', -- enum
   ['items and subitems'] = 'in a table, a `nil` value means that the key does not exist', -- items
+  ['items and subitems (7)'] = 'in a table, a `nil` value means that the key does not exist', -- items
+  ['items and subitems (2019)'] = 'in a table, a `nil` value means that the key does not exist', -- items
+  ['pattern with Unicode property escape'] = 'unicode / PCRE2', -- pattern
   ['pattern with Unicode property escape requires unicode mode'] = 'unicode / PCRE2', -- pattern
   ['patternProperties with Unicode property escape'] = 'unicode / PCRE2', -- patternProperties
 }
@@ -26,6 +29,9 @@ local skipped2 = setmetatable({
   ['contains keyword validation'] = { -- contains
     ['not array is valid'] = 'array and object are both represented by a Lua table',
   },
+  ['contains keyword with boolean schema false'] = { -- contains
+    ['non-arrays are valid - object'] = 'array and object are both represented by a Lua table',
+  },
   ['maxProperties validation'] = { -- maxProperties
     ['ignores arrays'] = 'array and object are both represented by a Lua table',
   },
@@ -33,6 +39,9 @@ local skipped2 = setmetatable({
     ['ignores arrays'] = 'array and object are both represented by a Lua table',
   },
   ['by small number'] = { -- multipleOf
+    ['0.0075 is multiple of 0.0001'] = 'Lua modulo',
+  },
+  ['multipleOf small number'] = { -- multipleOf
     ['0.0075 is multiple of 0.0001'] = 'Lua modulo',
   },
   ['small multiple of large integer'] = { -- multipleOf
@@ -59,7 +68,13 @@ local skipped2 = setmetatable({
   ['uniqueItems with an array of items and additionalItems=false'] = { -- uniqueItems
     ['extra items are invalid even if unique'] = 'in a table, a `nil` value means that the key does not exist',
   },
+  ['uniqueItems with prefixItems and items=false'] = { -- uniqueItems
+    ['extra items are invalid even if unique'] = 'in a table, a `nil` value means that the key does not exist',
+  },
   ['uniqueItems=false with an array of items and additionalItems=false'] = { -- uniqueItems
+    ['extra items are invalid even if unique'] = 'in a table, a `nil` value means that the key does not exist',
+  },
+  ['uniqueItems=false with prefixItems and items=false'] = { -- uniqueItems
     ['extra items are invalid even if unique'] = 'in a table, a `nil` value means that the key does not exist',
   },
 }, {
@@ -76,6 +91,20 @@ local function exec(cmd)
 end
 
 local STARTED = false
+local DIALECT
+
+-- lua-schema keeps every schema with an identifier in a module-level store,
+-- but external schemas are scoped to a single test case, so start each case
+-- with a freshly loaded library.
+local function reload()
+  for name in pairs(package.loaded) do
+    if name == 'schema' or name:match '^schema%.' then
+      package.loaded[name] = nil
+    end
+  end
+  schema = require 'schema'
+  require(DIALECT)
+end
 
 local cmds = {
   start = function(request)
@@ -107,6 +136,7 @@ local cmds = {
     assert(STARTED, 'Not started!')
     local modname = modnames[request.dialect]
     if modname then
+      DIALECT = modname
       require(modname)
       return {
         ok = true,
@@ -123,6 +153,7 @@ local cmds = {
     local reason = skipped1[case.description]
     local results = {}
     if not reason then
+      reload()
       schema.custom_resolver = function(url)
         if case.registry then
           return case.registry[url]
