@@ -34,6 +34,11 @@ local function setup(modname, registry)
 end
 
 local function teardown()
+  for name in pairs(package.loaded) do
+    if name == 'schema' or name:match '^schema%.' then
+      package.loaded[name] = nil
+    end
+  end
 end
 
 local modnames = {
@@ -45,6 +50,7 @@ local modnames = {
 }
 
 local skipped1 = {
+  ['pattern with Unicode property escape'] = 'unicode / PCRE2', -- pattern
   ['pattern with Unicode property escape requires unicode mode'] = 'unicode / PCRE2', -- pattern
   ['patternProperties with Unicode property escape'] = 'unicode / PCRE2', -- patternProperties
 }
