@@ -22,11 +22,11 @@ schema.json.is_object = function (data)
 end
 
 local modnames = {
-  ['https://json-schema.org/draft/2020-12/schema'] = 'schema.draft2020-12',
-  ['https://json-schema.org/draft/2019-09/schema'] = 'schema.draft2019-09',
-  ['http://json-schema.org/draft-07/schema#'] = 'schema.draft-07',
-  ['http://json-schema.org/draft-06/schema#'] = 'schema.draft-06',
-  ['http://json-schema.org/draft-04/schema#'] = 'schema.draft-04',
+  ['https://json-schema.org/draft/2020-12/schema'] = 'schema.dialect.draft2020-12',
+  ['https://json-schema.org/draft/2019-09/schema'] = 'schema.dialect.draft2019-09',
+  ['http://json-schema.org/draft-07/schema#'] = 'schema.dialect.draft-07',
+  ['http://json-schema.org/draft-06/schema#'] = 'schema.dialect.draft-06',
+  ['http://json-schema.org/draft-04/schema#'] = 'schema.dialect.draft-04',
 }
 
 local skipped1 = {
