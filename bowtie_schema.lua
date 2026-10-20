@@ -147,7 +147,10 @@ local cmds = {
             message = reason,
           }
         else
-          results[i] = validator:validate(test.instance)
+          local result = validator:validate(test.instance)
+          results[i] = {
+            valid = result.valid,
+          }
         end
       end
     else
