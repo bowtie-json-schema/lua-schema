@@ -1,24 +1,39 @@
-local schema = require 'schema'
 local json = require 'dkjson'
 local null = io.stderr
-schema.json.null = null
-schema.json.is_array = function (data)
-  if type(data) == 'table' then
-    local mt = getmetatable(data)
+
+local function setup(modname, registry)
+  local schema = require 'schema'
+  if modname then
+    require(modname)
+  end
+  schema.json.null = null
+  schema.json.is_array = function(data)
+    if type(data) == 'table' then
+      local mt = getmetatable(data)
       if not mt or mt.__jsontype == 'array' then
         return true
       end
+    end
+    return false
   end
-  return false
-end
-schema.json.is_object = function (data)
-  if type(data) == 'table' then
-    local mt = getmetatable(data)
-    if not mt or mt.__jsontype == 'object' then
+  schema.json.is_object = function(data)
+    if type(data) == 'table' then
+      local mt = getmetatable(data)
+      if not mt or mt.__jsontype == 'object' then
         return true
       end
+    end
+    return false
   end
-  return false
+  schema.custom_resolver = function(url)
+    if registry then
+      return registry[url]
+    end
+  end
+  return schema
+end
+
+local function teardown()
 end
 
 local modnames = {
@@ -49,10 +64,12 @@ local function exec(cmd)
 end
 
 local STARTED = false
+local DIALECT
 
 local cmds = {
   start = function(request)
     assert(request.version == 1, 'Wrong version!')
+    local schema = require 'schema'
     STARTED = true
     return {
       version = 1,
@@ -80,7 +97,7 @@ local cmds = {
     assert(STARTED, 'Not started!')
     local modname = modnames[request.dialect]
     if modname then
-      require(modname)
+      DIALECT = modname
       return {
         ok = true,
       }
@@ -96,13 +113,10 @@ local cmds = {
     local reason = skipped1[case.description]
     local results = {}
     if not reason then
-      schema.custom_resolver = function(url)
-        if case.registry then
-          return case.registry[url]
-        end
-      end
+      local schema = setup(DIALECT, case.registry)
       local ok, validator = xpcall(schema.new, debug.traceback, case.schema)
       if not ok then
+        teardown()
         return {
           errored = true,
           seq = request.seq,
@@ -126,6 +140,7 @@ local cmds = {
           }
         end
       end
+      teardown()
     else
       for i = 1, #case.tests do
         results[i] = {
