@@ -42,6 +42,7 @@ local function teardown()
 end
 
 local modnames = {
+  ['https://json-schema.org/v1'] = 'schema.dialect.v1-2026',
   ['https://json-schema.org/draft/2020-12/schema'] = 'schema.dialect.draft2020-12',
   ['https://json-schema.org/draft/2019-09/schema'] = 'schema.dialect.draft2019-09',
   ['http://json-schema.org/draft-07/schema#'] = 'schema.dialect.draft-07',
@@ -86,6 +87,7 @@ local cmds = {
         issues = 'https://framagit.org/fperrad/lua-schema/-/issues',
         source = 'https://framagit.org/fperrad/lua-schema',
         dialects = {
+          'https://json-schema.org/v1',
           'https://json-schema.org/draft/2020-12/schema',
           'https://json-schema.org/draft/2019-09/schema',
           'http://json-schema.org/draft-07/schema#',
